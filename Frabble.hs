@@ -23,7 +23,7 @@ type Board = [(Position,Tile)]
 
 data Bonus = Word Int | Letter Int deriving Eq
 type LiveBonus = (Position,Bonus)
-type LiveTile = (Position,Bonus)
+type LiveTile = (Position,Tile)
 type LiveWord = [LiveTile]
 type BonusBoard = [LiveBonus] 
 type LiveBonuses = [LiveBonus]
@@ -95,8 +95,6 @@ find k kvs = head [v | (k',v) <- kvs, k' == k]
 
 findPair :: Eq k => k -> [(k,v)] -> (k,v)
 findPair k kvs = head [(k',v) | (k',v) <- kvs, k' == k]
-
-
 
 -- Data types to describe a move
 -- e.g. STDIN> A 12 Across FLIPPER
@@ -199,7 +197,7 @@ checkMove (Move (Pos c r) a w)
 --   - Racks (pass ALL racks in play - not just the one that has the next turn)
 --   - Players' scores
 --   - Player whose turn it is next
---
+
 offBoard :: Position -> Bool
 offBoard (Pos col row) = col < head cols || col > last cols || row < head rows || row > last rows 
 
@@ -256,35 +254,39 @@ adjacent :: Direction -> Position -> Position
 adjacent d = shift d 1
 
 -- Return all letters from a given position that lie in the specified direction
-findLetters :: Direction -> Board -> Position -> String
-findLetters d b p
+findLiveTiles :: Direction -> Board -> Position -> LiveWord
+findLiveTiles d b p
     | offBoard p  = []
     | isEmpty b p = []
-    | otherwise   = (find p b) : findLetters d b (adjacent d p)       
+    | otherwise   = (findPair p b) : findLiveTiles d b (adjacent d p)       
 
-findLettersUp :: Board -> Position -> String
-findLettersUp b p = reverse (findLetters Up b p)
+findLiveTilesUp :: Board -> Position -> LiveWord
+findLiveTilesUp b p = reverse (findLiveTiles Up b p)
     
-findLettersDown :: Board -> Position -> String
-findLettersDown = findLetters Down
+findLiveTilesDown :: Board -> Position -> LiveWord
+findLiveTilesDown = findLiveTiles Down
     
-findLettersLeft :: Board -> Position -> String
-findLettersLeft b p = reverse (findLetters Main.Left b p)
+findLiveTilesLeft :: Board -> Position -> LiveWord
+findLiveTilesLeft b p = reverse (findLiveTiles Main.Left b p)
     
-findLettersRight :: Board -> Position -> String
-findLettersRight = findLetters Main.Right
+findLiveTilesRight :: Board -> Position -> LiveWord
+findLiveTilesRight = findLiveTiles Main.Right
     
 -- Find a word that crosses perpendicular to an existing word at the specified
 -- position
-findXWord :: Alignment -> Board -> Position -> String
-findXWord Horizontal b p = (findLettersUp b p) ++ tail (findLettersDown b p)
-findXWord Vertical   b p = (findLettersLeft b p) ++ tail (findLettersRight b p)
+findXWord :: Alignment -> Board -> Position -> LiveWord
+findXWord Horizontal b p = (findLiveTilesUp b p) ++ tail (findLiveTilesDown b p)
+findXWord Vertical   b p = (findLiveTilesLeft b p) ++ tail (findLiveTilesRight b p)
 
-findXWords :: Alignment -> Board -> Position -> [String]
+findXWords :: Alignment -> Board -> Position -> [LiveWord]
 findXWords a b p
     | offBoard p  = []
     | isEmpty b p = []
-    | otherwise   = findXWord a b p : findXWords a b (nextPos a p)
+    | otherwise   = if length word > 1
+                       then word : findXWords a b (nextPos a p)
+                       else findXWords a b (nextPos a p)
+                    where
+                        word = findXWord a b p
 
 -- A turn:
 -- DONE: Parse player's move
@@ -465,3 +467,13 @@ testGetMove b r = do
         retryMove s = do putStrLn s
                          testGetMove b r                                                    
  
+testFindXWords :: IO () 
+testFindXWords = do
+    let 
+        Prelude.Right (b,r) = addTiles [] fullBag (Move (Pos 'D' 5) Vertical "STRING")       
+        Prelude.Right (b',r') = addTiles b fullBag (Move (Pos 'B' 7) Horizontal "BOREDOM")   
+        Prelude.Right (b'',r'') = addTiles b' fullBag (Move (Pos 'D' 10) Horizontal "GUAGE") 
+        Prelude.Right (b''',r''') = addTiles b'' fullBag (Move (Pos 'A' 5) Horizontal "BITS")
+        words = findXWords Vertical b''' (Pos 'D' 5)                                                 
+    printBoard b''' []                         
+    print words
