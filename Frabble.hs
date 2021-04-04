@@ -21,8 +21,10 @@ type Bag = [Tile]
 type Rack = [Tile]
 type Board = [(Position,Tile)]
 
-data Bonus = Word Int | Letter Int
-type BonusBoard = [(Position,Bonus)] 
+data Bonus = Word Int | Letter Int deriving Eq
+type LiveBonus = (Position,Bonus)
+type BonusBoard = [LiveBonus] 
+type LiveBonuses = [LiveBonus]
 
 instance Show Bonus where
     show (Word n) 
@@ -191,9 +193,6 @@ checkMove (Move (Pos c r) a w)
 --   - Players' scores
 --   - Player whose turn it is next
 --
--- Also consider how words played across and words played down could be
--- processed by almost exactly the same code - just need to consider the 
--- board to be rotated by 90 degrees
 offBoard :: Position -> Bool
 offBoard (Pos col row) = col < head cols || col > last cols || row < head rows || row > last rows 
 
@@ -210,6 +209,11 @@ nextPos Vertical   = shift Down       1
 prevPos :: Alignment -> Position -> Position
 prevPos Horizontal = shift Main.Left 1
 prevPos Vertical   = shift Up        1
+
+liveBonus :: BonusBoard -> LiveBonuses -> Position -> (BonusBoard, LiveBonuses)
+liveBonus bb bs p = case tryFind p bb of
+                        Nothing -> (bb,bs)
+                        Just b  -> ((bb `without1` (p,b)),((p,b):bs))
 
 -- Add tiles to board to complete move; return modified board & rack, and applicable bonuses
 addTiles :: Board -> Rack -> Move -> Either String (Board,Rack)
@@ -428,13 +432,16 @@ testGetMove :: Board -> Rack -> IO ()
 testGetMove b r = do
     m <- getMove
     case m of 
-        Prelude.Left s -> do putStrLn s
+        Prelude.Left s -> do retryMove s
         Prelude.Right m -> 
             case checkMove m of
-                Prelude.Left s -> do putStrLn s
+                Prelude.Left s -> do retryMove s
                 Prelude.Right _ ->
                     case addTiles b r m of
-                        Prelude.Left s -> do putStrLn s
+                        Prelude.Left s -> do retryMove s
                         Prelude.Right (b',r') -> do printBoard b' bonuses 
                                                     testGetMove b' r'
+    where
+        retryMove s = do putStrLn s
+                         testGetMove b r                                                    
  
