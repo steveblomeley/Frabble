@@ -429,9 +429,12 @@ testGetMove b r = do
     m <- getMove
     case m of 
         Prelude.Left s -> do putStrLn s
-        Prelude.Right m -> do
-            case addTiles b r m of
+        Prelude.Right m -> 
+            case checkMove m of
                 Prelude.Left s -> do putStrLn s
-                Prelude.Right (b',r') -> do printBoard b' bonuses 
-                                            testGetMove b' r'
+                Prelude.Right _ ->
+                    case addTiles b r m of
+                        Prelude.Left s -> do putStrLn s
+                        Prelude.Right (b',r') -> do printBoard b' bonuses 
+                                                    testGetMove b' r'
  
