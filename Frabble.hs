@@ -280,10 +280,10 @@ findXWords a b p
     | otherwise   = findXWord a b p : findXWords a b (nextPos a p)
 
 -- A turn:
--- TODO: Parse player's move
--- - Prompt for input (Move), parse input and "read" into a Move
+-- DONE: Parse player's move
 -- DONE: Basic validation - checkMove
--- DONE: Add tiles to board - addTiles
+-- IN PROGRESS: Add tiles to board - addTiles
+-- - TODO: Retrieve applicable bonuses
 -- IN PROGRESS: Find perpendicular words
 -- - DONE: findXWords
 -- - TODO: filter to remove single letters
@@ -292,8 +292,9 @@ findXWords a b p
 --   - If first move of game, then OK
 --   - If # letters used from rack < # letters in word then OK
 --   - Otherwise there must be at least one adjoining perpendicular word
--- Check played word and perpendicular words are in dictionary
--- Calculate score
+-- TODO: Check played word and perpendicular words are in dictionary
+-- TODO: Calculate score
+-- TODO: refill rack
 
 -- Play function
 --
@@ -428,17 +429,25 @@ getMove = do
     return (parseMove (words move))
 
 -- Get a move - ANY move - and add it to the board
+-- Q: How to avoid endless indentation in control flow?
+--    - Could encapsulate components of game state in a type
+--      Each function could then accept & return "Either String GameState"
+--      Pattern match each function so that:
+--      - Left s = Left s                        (i.e. return immediately)
+--      - Right gs = do stuff with game state
+--      
+
 testGetMove :: Board -> Rack -> IO ()
 testGetMove b r = do
     m <- getMove
     case m of 
-        Prelude.Left s -> do retryMove s
+        Prelude.Left s -> retryMove s
         Prelude.Right m -> 
             case checkMove m of
-                Prelude.Left s -> do retryMove s
+                Prelude.Left s -> retryMove s
                 Prelude.Right _ ->
                     case addTiles b r m of
-                        Prelude.Left s -> do retryMove s
+                        Prelude.Left s -> retryMove s
                         Prelude.Right (b',r') -> do printBoard b' bonuses 
                                                     testGetMove b' r'
     where
