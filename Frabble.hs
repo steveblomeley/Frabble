@@ -23,6 +23,8 @@ type Board = [(Position,Tile)]
 
 data Bonus = Word Int | Letter Int deriving Eq
 type LiveBonus = (Position,Bonus)
+type LiveTile = (Position,Bonus)
+type LiveWord = [LiveTile]
 type BonusBoard = [LiveBonus] 
 type LiveBonuses = [LiveBonus]
 
@@ -90,6 +92,11 @@ tryFind k kvs = if null vs then Nothing else Just (head vs)
 
 find :: Eq k => k -> [(k,v)] -> v
 find k kvs = head [v | (k',v) <- kvs, k' == k]
+
+findPair :: Eq k => k -> [(k,v)] -> (k,v)
+findPair k kvs = head [(k',v) | (k',v) <- kvs, k' == k]
+
+
 
 -- Data types to describe a move
 -- e.g. STDIN> A 12 Across FLIPPER
@@ -435,6 +442,10 @@ getMove = do
 --      Pattern match each function so that:
 --      - Left s = Left s                        (i.e. return immediately)
 --      - Right gs = do stuff with game state
+--      But . . . would need to incorporate move into game state. Not simple,
+--      may need to pass move history between turns, instead of board state.
+--      Then play previous moves into blank board anytime we need the current
+--      state of the board?
 --      
 
 testGetMove :: Board -> Rack -> IO ()
