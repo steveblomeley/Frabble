@@ -90,6 +90,11 @@ tryFind k kvs = if null vs then Nothing else Just (head vs)
                 where 
                     vs = [v | (k',v) <- kvs, k' == k]
 
+tryFindPair :: Eq k => k -> [(k,v)] -> Maybe (k,v)
+tryFindPair k kvs = if null kvs' then Nothing else Just (head kvs')
+                    where 
+                        kvs' = [(k',v) | (k',v) <- kvs, k' == k]
+
 find :: Eq k => k -> [(k,v)] -> v
 find k kvs = head [v | (k',v) <- kvs, k' == k]
 
@@ -215,22 +220,22 @@ prevPos :: Alignment -> Position -> Position
 prevPos Horizontal = shift Main.Left 1
 prevPos Vertical   = shift Up        1
 
-liveBonus :: BonusBoard -> LiveBonuses -> Position -> (BonusBoard, LiveBonuses)
-liveBonus bb bs p = case tryFind p bb of
-                        Nothing -> (bb,bs)
-                        Just b  -> ((bb `without1` (p,b)),((p,b):bs))
+liveBonus :: Position -> LiveBonuses -> LiveBonuses
+liveBonus p lbs = case tryFindPair p bonuses of
+                        Nothing -> lbs
+                        Just lb -> (lb:lbs)
 
 -- Add tiles to board to complete move; return modified board & rack, and applicable bonuses
-addTiles :: Board -> Rack -> Move -> Either String (Board,Rack)
-addTiles b r (Move _ _ [])     = Prelude.Right (b,r)
-addTiles b r (Move p a (t:ts)) = 
+addTiles :: Board -> Rack -> Move -> LiveBonuses -> Either String (Board,Rack,LiveBonuses)
+addTiles b r (Move _ _ []) lbs = Prelude.Right (b,r,lbs)
+addTiles b r (Move p a (t:ts)) lbs = 
     case tryFind p b of
         Nothing -> if elem t r then 
-                       addTiles ((p,t):b) (r `without1` t) remainderOfMove
+                       addTiles ((p,t):b) (r `without1` t) remainderOfMove (liveBonus p lbs)
                    else
                        Prelude.Left "That word needs a tile that isn't on your rack"  
         Just t' -> if t == t' then
-                       addTiles b r remainderOfMove
+                       addTiles b r remainderOfMove lbs
                    else 
                        Prelude.Left "One or more letters in that word do not match tiles already on the board"
     where 
@@ -459,10 +464,11 @@ testGetMove b r = do
             case checkMove m of
                 Prelude.Left s -> retryMove s
                 Prelude.Right _ ->
-                    case addTiles b r m of
+                    case addTiles b r m [] of
                         Prelude.Left s -> retryMove s
-                        Prelude.Right (b',r') -> do printBoard b' bonuses 
-                                                    testGetMove b' r'
+                        Prelude.Right (b',r',lbs) -> do printBoard b' bonuses
+                                                        print lbs 
+                                                        testGetMove b' r'
     where
         retryMove s = do putStrLn s
                          testGetMove b r                                                    
@@ -470,10 +476,11 @@ testGetMove b r = do
 testFindXWords :: IO () 
 testFindXWords = do
     let 
-        Prelude.Right (b,r) = addTiles [] fullBag (Move (Pos 'D' 5) Vertical "STRING")       
-        Prelude.Right (b',r') = addTiles b fullBag (Move (Pos 'B' 7) Horizontal "BOREDOM")   
-        Prelude.Right (b'',r'') = addTiles b' fullBag (Move (Pos 'D' 10) Horizontal "GUAGE") 
-        Prelude.Right (b''',r''') = addTiles b'' fullBag (Move (Pos 'A' 5) Horizontal "BITS")
+        Prelude.Right (b,r,bs) = addTiles [] fullBag (Move (Pos 'D' 5) Vertical "STRING") []
+        Prelude.Right (b',r',bs') = addTiles b fullBag (Move (Pos 'B' 7) Horizontal "BOREDOM") [] 
+        Prelude.Right (b'',r'',bs'') = addTiles b' fullBag (Move (Pos 'D' 10) Horizontal "GUAGE") []
+        Prelude.Right (b''',r''',bs''') = addTiles b'' fullBag (Move (Pos 'A' 5) Horizontal "BITS") []
         words = findXWords Vertical b''' (Pos 'D' 5)                                                 
     printBoard b''' []                         
     print words
+    print bs
