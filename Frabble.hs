@@ -226,20 +226,31 @@ liveBonus p lbs = case tryFindPair p bonuses of
                         Just lb -> (lb:lbs)
 
 -- Add tiles to board to complete move; return modified board & rack, and applicable bonuses
+addNewTile :: Board -> Rack -> Move -> LiveBonuses -> Either String (Board,Rack,LiveBonuses)
+addNewTile b r (Move p a (t:ts)) lbs = 
+    if notElem t r then 
+        Prelude.Left "That word needs a tile that isn't on your rack" 
+    else
+        addTiles boardWithTileAdded rackWithTileRemoved remainderOfMove updatedLiveBonuses
+        where boardWithTileAdded = (p,t):b
+              rackWithTileRemoved = r `without1` t
+              remainderOfMove = Move (nextPos a p) a ts
+              updatedLiveBonuses = (liveBonus p lbs)
+
+useExistingTile :: Board -> Rack -> Move -> LiveBonuses -> Tile -> Either String (Board,Rack,LiveBonuses)
+useExistingTile b r (Move p a (t:ts)) lbs tExisting =
+    if t /= tExisting then
+        Prelude.Left "One or more letters in that word do not match tiles already on the board"
+    else
+        addTiles b r remainderOfMove lbs
+        where remainderOfMove = Move (nextPos a p) a ts
+
 addTiles :: Board -> Rack -> Move -> LiveBonuses -> Either String (Board,Rack,LiveBonuses)
 addTiles b r (Move _ _ []) lbs = Prelude.Right (b,r,lbs)
 addTiles b r (Move p a (t:ts)) lbs = 
     case tryFind p b of
-        Nothing -> if elem t r then 
-                       addTiles ((p,t):b) (r `without1` t) remainderOfMove (liveBonus p lbs)
-                   else
-                       Prelude.Left "That word needs a tile that isn't on your rack"  
-        Just t' -> if t == t' then
-                       addTiles b r remainderOfMove lbs
-                   else 
-                       Prelude.Left "One or more letters in that word do not match tiles already on the board"
-    where 
-        remainderOfMove = Move (nextPos a p) a ts
+        Nothing -> addNewTile b r (Move p a (t:ts)) lbs
+        Just t' -> useExistingTile b r (Move p a (t:ts)) lbs t'
 
 isEmpty :: Board -> Position -> Bool
 isEmpty b p = tryFind p b == Nothing                     
@@ -498,6 +509,6 @@ testFindXWords = do
         Prelude.Right (b'',r'',bs'') = addTiles b' fullBag (Move (Pos 'D' 10) Horizontal "GUAGE") []
         Prelude.Right (b''',r''',bs''') = addTiles b'' fullBag (Move (Pos 'A' 5) Horizontal "BITS") []
         words = findXWords Vertical b''' (Pos 'D' 5)                                                 
-    printBoard b''' []                         
+    printBoard b''' bonuses                         
     print words
     print bs
