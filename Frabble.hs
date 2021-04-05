@@ -77,13 +77,13 @@ bonuses = [(Pos 'A' 1,  w3), (Pos 'H' 1,  w3), (Pos 'O' 1,  w3),
            (Pos 'B' 10, l3), (Pos 'F' 10, l3), (Pos 'J' 10, l3), (Pos 'N' 10, l3),
            (Pos 'F' 14, l3), (Pos 'J' 14, l3)]
 
-letterCounts = [9,2,2,4,12,2,3,2,9,1,1,4,2,6,8,2,1,6,4,6,4,2,2,1,2,1]
-letterScores = [1,3,3,2,1,4,2,4,1,8,5,1,3,1,1,3,10,1,1,1,1,4,4,8,4,10]
+ltrCounts = [9,2,2,4,12,2,3,2,9,1,1,4,2,6,8,2,1,6,4,6,4,2,2,1,2,1]
+ltrScores = [1,3,3,2,1,4,2,4,1,8,5,1,3,1,1,3,10,1,1,1,1,4,4,8,4,10]
 
 fullBag :: Bag
-fullBag = concat . zipWith replicate letterCounts $ ['A'..'Z']
+fullBag = concat . zipWith replicate ltrCounts $ ['A'..'Z']
 
-scores = zip ['A'..'Z'] letterScores
+scores = zip ['A'..'Z'] ltrScores
 
 tryFind :: Eq k => k -> [(k,v)] -> Maybe v
 tryFind k kvs = if null vs then Nothing else Just (head vs)
@@ -294,6 +294,10 @@ findXWord :: Alignment -> Board -> Position -> LiveWord
 findXWord Horizontal b p = (findLiveTilesUp b p) ++ tail (findLiveTilesDown b p)
 findXWord Vertical   b p = (findLiveTilesLeft b p) ++ tail (findLiveTilesRight b p)
 
+findWord :: Alignment -> Board -> Position -> LiveWord
+findWord Horizontal = findLiveTilesRight
+findWord Vertical   = findLiveTilesDown
+
 findXWords :: Alignment -> Board -> Position -> [LiveWord]
 findXWords a b p
     | offBoard p  = []
@@ -456,15 +460,27 @@ getMove = do
 -- Score a word
 wordBonus :: Position -> LiveBonuses -> Int
 wordBonus p bs = case b of
-                     Nothing -> 1
-                     Just (Letter _) -> 1
                      Just (Word n) -> n
+                     _             -> 1
                  where b = tryFind p bs
-              
+
+letterBonus :: Position -> LiveBonuses -> Int
+letterBonus p bs = case b of
+                       Just (Letter n) -> n
+                       _               -> 1
+                   where b = tryFind p bs
+                 
 wordBonuses :: LiveWord -> LiveBonuses -> Int
 wordBonuses [] _ = 1
 wordBonuses (x:xs) bs = (wordBonus p bs) * (wordBonuses xs bs)
                         where (p,_) = x 
+
+letterScores :: LiveWord -> LiveBonuses -> Int
+letterScores [] _ = 0
+letterScores (x:xs) bonuses = (score * bonus) + (letterScores xs bonuses)
+                              where (pos,letter) = x
+                                    score = find letter scores 
+                                    bonus = letterBonus pos bonuses        
 {-
 wordScore :: LiveWord -> LiveBonuses -> Int
 wordScore (x:xs) bs = 
@@ -508,7 +524,9 @@ testFindXWords = do
         Prelude.Right (b',r',bs') = addTiles b fullBag (Move (Pos 'B' 7) Horizontal "BOREDOM") [] 
         Prelude.Right (b'',r'',bs'') = addTiles b' fullBag (Move (Pos 'D' 10) Horizontal "GUAGE") []
         Prelude.Right (b''',r''',bs''') = addTiles b'' fullBag (Move (Pos 'A' 5) Horizontal "BITS") []
-        words = findXWords Vertical b''' (Pos 'D' 5)                                                 
+        word = findWord Vertical b (Pos 'D' 5)                                                 
+        score = letterScores word bs
     printBoard b''' bonuses                         
-    print words
+    print word
     print bs
+    print score
