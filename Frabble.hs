@@ -1,6 +1,7 @@
 import Data.Char
 import System.Random
 import Text.Read
+import Data.List
 
 -- Simple data types - declared to make function type declarations more explicit
 boardSize :: Int
@@ -95,6 +96,9 @@ tryFindPair k kvs = if null kvs' then Nothing else Just (head kvs')
                     where 
                         kvs' = [(k',v) | (k',v) <- kvs, k' == k]
 
+tryFindManyPair :: (Eq k, Eq v) => [k] -> [(k,v)] -> [(k,v)]
+tryFindManyPair ks kvs = nub [(k,v) | (k,v) <- kvs, k' <- ks, k' == k]         
+
 find :: Eq k => k -> [(k,v)] -> v
 find k kvs = head [v | (k',v) <- kvs, k' == k]
 
@@ -103,11 +107,11 @@ findPair k kvs = head [(k',v) | (k',v) <- kvs, k' == k]
 
 -- Data types to describe a move
 -- e.g. STDIN> A 12 Across FLIPPER
---    becomes: Move Posn 'A' 12 Alignment Across "FLIPPER"
--- Test in GHCi with: 
---    > Move (Pos a b) c d = read "Move (Pos 'C' 13) Down \"THINGY\"" :: Move
+--    becomes: Move (Posn 'A' 12) Horizontal "FLIPPER"
 --
--- We will probably need to add "user" to the Move data type
+-- [ The user enters Down or Across for the move direction - but
+--   internally these map to alignments of Vertical or Horizontal, as  
+--   "Down" is already used as one of the 4 directions to read letters ]
 
 data Alignment = Horizontal | Vertical deriving (Show, Read, Eq)
 data Direction = Up | Down | Left | Right deriving Show
@@ -189,12 +193,6 @@ checkMove (Move (Pos c r) a w)
 --   Search for perpendicular words from each position in the new word.
 --   Then check that the played word, plus all perp words are in the dictionary.
 --
--- Scoring
---   Then think about scoring
---   Think about bonuses - setup a k,v list of all available bonuses, keyed by 
---   position. Once a bonus is applied, it is removed from the list passed to 
---   to the next turn
---
 -- State
 --   What state needs to be passed to next turn? 
 --   - Board
@@ -226,31 +224,30 @@ liveBonus p lbs = case tryFindPair p bonuses of
                         Just lb -> (lb:lbs)
 
 -- Add tiles to board to complete move; return modified board & rack, and applicable bonuses
-addNewTile :: Board -> Rack -> Move -> LiveBonuses -> Either String (Board,Rack,LiveBonuses)
-addNewTile b r (Move p a (t:ts)) lbs = 
+addNewTile :: Board -> Rack -> Move -> Either String (Board,Rack)
+addNewTile b r (Move p a (t:ts)) = 
     if notElem t r then 
         Prelude.Left "That word needs a tile that isn't on your rack" 
     else
-        addTiles boardWithTileAdded rackWithTileRemoved remainderOfMove updatedLiveBonuses
+        addTiles boardWithTileAdded rackWithTileRemoved remainderOfMove
         where boardWithTileAdded = (p,t):b
               rackWithTileRemoved = r `without1` t
               remainderOfMove = Move (nextPos a p) a ts
-              updatedLiveBonuses = (liveBonus p lbs)
 
-useExistingTile :: Board -> Rack -> Move -> LiveBonuses -> Tile -> Either String (Board,Rack,LiveBonuses)
-useExistingTile b r (Move p a (t:ts)) lbs tExisting =
+useExistingTile :: Board -> Rack -> Move -> Tile -> Either String (Board,Rack)
+useExistingTile b r (Move p a (t:ts)) tExisting =
     if t /= tExisting then
         Prelude.Left "One or more letters in that word do not match tiles already on the board"
     else
-        addTiles b r remainderOfMove lbs
+        addTiles b r remainderOfMove
         where remainderOfMove = Move (nextPos a p) a ts
 
-addTiles :: Board -> Rack -> Move -> LiveBonuses -> Either String (Board,Rack,LiveBonuses)
-addTiles b r (Move _ _ []) lbs = Prelude.Right (b,r,lbs)
-addTiles b r (Move p a (t:ts)) lbs = 
+addTiles :: Board -> Rack -> Move -> Either String (Board,Rack)
+addTiles b r (Move _ _ []) = Prelude.Right (b,r)
+addTiles b r (Move p a (t:ts)) = 
     case tryFind p b of
-        Nothing -> addNewTile b r (Move p a (t:ts)) lbs
-        Just t' -> useExistingTile b r (Move p a (t:ts)) lbs t'
+        Nothing -> addNewTile b r (Move p a (t:ts))
+        Just t' -> useExistingTile b r (Move p a (t:ts)) t'
 
 isEmpty :: Board -> Position -> Bool
 isEmpty b p = tryFind p b == Nothing                     
@@ -311,19 +308,19 @@ findXWords a b p
 -- A turn:
 -- DONE: Parse player's move
 -- DONE: Basic validation - checkMove
--- IN PROGRESS: Add tiles to board - addTiles
--- - TODO: Retrieve applicable bonuses
--- IN PROGRESS: Find perpendicular words
--- - DONE: findXWords
--- - TODO: filter to remove single letters
+-- DONE: Add tiles to board & retrieve applicable bonuses - addTiles
+-- DONE: Find perpendicular words - findXWords
 -- TODO: Check word connects with at least one existing word on board. Once
 --   new tiles added to board . . .
 --   - If first move of game, then OK
 --   - If # letters used from rack < # letters in word then OK
 --   - Otherwise there must be at least one adjoining perpendicular word
 -- TODO: Check played word and perpendicular words are in dictionary
--- TODO: Calculate score
+-- DONE: Calculate score
 -- TODO: refill rack
+-- TODO: Calculate player's total score
+-- TODO: Calculate next player
+-- TODO: Next turn
 
 -- Play function
 --
@@ -406,7 +403,7 @@ printBoard b bb = do
     printBody b bb 1
 
 -- Parse a move
--- TODO: Consider using Parsec instead of handballing this    
+-- TODO: Consider using Parsec instead of handballing this?  
 parseAlignment :: String -> Maybe Alignment
 parseAlignment x
     | x == "Across" = Just Horizontal
@@ -479,7 +476,7 @@ letterScores :: LiveWord -> LiveBonuses -> Int
 letterScores [] _ = 0
 letterScores (x:xs) bonuses = (score * bonus) + (letterScores xs bonuses)
                               where (pos,letter) = x
-                                    score = find letter scores 
+                                    score = Main.find letter scores 
                                     bonus = letterBonus pos bonuses        
 
 wordScore :: LiveWord -> LiveBonuses -> Int
@@ -508,11 +505,10 @@ testGetMove b r = do
             case checkMove m of
                 Prelude.Left s -> retryMove s
                 Prelude.Right _ ->
-                    case addTiles b r m [] of
+                    case addTiles b r m of
                         Prelude.Left s -> retryMove s
-                        Prelude.Right (b',r',lbs) -> do printBoard b' bonuses
-                                                        print lbs 
-                                                        testGetMove b' r'
+                        Prelude.Right (b',r') -> do printBoard b' bonuses
+                                                    testGetMove b' r'
     where
         retryMove s = do putStrLn s
                          testGetMove b r                                                    
@@ -520,13 +516,18 @@ testGetMove b r = do
 testFindXWords :: IO () 
 testFindXWords = do
     let 
-        Prelude.Right (b,r,bs) = addTiles [] fullBag (Move (Pos 'D' 5) Vertical "STRING") []
-        Prelude.Right (b',r',bs') = addTiles b fullBag (Move (Pos 'B' 7) Horizontal "BOREDOM") [] 
-        Prelude.Right (b'',r'',bs'') = addTiles b' fullBag (Move (Pos 'D' 10) Horizontal "GUAGE") []
-        Prelude.Right (b''',r''',bs''') = addTiles b'' fullBag (Move (Pos 'A' 5) Horizontal "BITS") []
-        word = findWord Vertical b (Pos 'D' 5)                                                 
-        score = letterScores word bs
-    printBoard b''' bonuses                         
+        Prelude.Right (b1,r1) = addTiles [] fullBag (Move (Pos 'D' 5) Vertical "STRING")
+        Prelude.Right (b2,r2) = addTiles b1 fullBag (Move (Pos 'B' 7) Horizontal "BOREDOM")
+        Prelude.Right (b3,r3) = addTiles b2 fullBag (Move (Pos 'D' 10) Horizontal "GUAGE")
+        Prelude.Right (b4,r4) = addTiles b3 fullBag (Move (Pos 'A' 5) Horizontal "BITS")
+        Prelude.Right (b5,r5) = addTiles b4 fullBag (Move (Pos 'B' 5) Vertical "IMBIBE")
+        word = findWord Vertical b5 (Pos 'B' 5)                                                 
+        newTiles = b5 `without` b4
+        newBonuses = tryFindManyPair [p | (p,_) <- newTiles] bonuses
+        score = wordScore word newBonuses
+    printBoard b5 bonuses                         
     print word
-    print bs
+    print newTiles
+    print newBonuses
     print score
+    --print score
