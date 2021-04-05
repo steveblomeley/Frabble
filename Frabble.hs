@@ -481,10 +481,10 @@ letterScores (x:xs) bonuses = (score * bonus) + (letterScores xs bonuses)
                               where (pos,letter) = x
                                     score = find letter scores 
                                     bonus = letterBonus pos bonuses        
-{-
+
 wordScore :: LiveWord -> LiveBonuses -> Int
-wordScore (x:xs) bs = 
--}
+wordScore word bonuses = (letterScores word bonuses) * (wordBonuses word bonuses)
+
 
 -- Get a move - ANY move - and add it to the board
 -- Q: How to avoid endless indentation in control flow?
