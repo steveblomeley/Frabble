@@ -166,14 +166,15 @@ runsOffBoard (Move (Pos _ row) Vertical word) = lastRowOfWord > boardSize
                                                 where
                                                     lastRowOfWord = row + length word - 1
 
-checkMove :: Move -> Either String Bool
-checkMove (Move (Pos c r) a w) 
+checkMove :: Either String Move -> Either String Move
+checkMove (Prelude.Left e)              = (Prelude.Left e)
+checkMove (Prelude.Right (Move (Pos c r) a w)) 
     | not (elem r rows)                 = Prelude.Left ("Row should be in the range 1 to " ++ (show boardSize))
     | not (elem c cols)                 = Prelude.Left ("Column should be in the range 'A' to " ++ (show $ last cols))
-    | length w < 2                      = Prelude.Left ("Word must be at least 1 letter long")
+    | length w < 1                      = Prelude.Left ("Word must be at least 1 letter long")
     | not (onlyAtoZ w)                  = Prelude.Left ("Word should contain only the letters 'A' to 'Z'")
     | runsOffBoard (Move (Pos c r) a w) = Prelude.Left ("That word runs off the edge of the board")
-    | otherwise                         = Prelude.Right True
+    | otherwise                         = Prelude.Right (Move (Pos c r) a w)
 
 -- Model the board
 --
@@ -250,7 +251,7 @@ addTiles b r (Move p a (t:ts)) =
         Just t' -> useExistingTile b r (Move p a (t:ts)) t'
 
 isEmpty :: Board -> Position -> Bool
-isEmpty b p = tryFind p b == Nothing                     
+isEmpty b p = tryFind p b == Nothing
 
 -- Check a move starts and ends at either the edge of the board, or a blank square
 checkWordBoundaries :: Board -> Move -> Bool
@@ -305,10 +306,14 @@ findXWords a b p
                     where
                         word = findXWord a b p
 
+findNewXWords :: Alignment -> Board -> [LiveTile] -> [LiveWord]
+findNewXWords a b ts = filter (\x -> length x > 1) [findXWord a b p | (p,_) <- ts]
+
 -- A turn:
 -- DONE: Parse player's move
 -- DONE: Basic validation - checkMove
--- DONE: Add tiles to board & retrieve applicable bonuses - addTiles
+-- DONE: Add tiles to board - addTiles
+-- TODO: Retrieve applicable bonuses
 -- DONE: Find perpendicular words - findXWords
 -- TODO: Check word connects with at least one existing word on board. Once
 --   new tiles added to board . . .
@@ -452,7 +457,7 @@ getMove :: IO (Either String Move)
 getMove = do
     putStrLn "Enter next move (e.g. A1 Across WORD) : "
     move <- getLine
-    return (parseMove (words move))
+    return (checkMove $ parseMove $ words move)
 
 -- Score a word
 wordBonus :: Position -> LiveBonuses -> Int
@@ -482,6 +487,26 @@ letterScores (x:xs) bonuses = (score * bonus) + (letterScores xs bonuses)
 wordScore :: LiveWord -> LiveBonuses -> Int
 wordScore word bonuses = (letterScores word bonuses) * (wordBonuses word bonuses)
 
+{-
+validateMove :: Board -> Board -> Rack -> Move -> Either String (Int,Rack)
+validateMove bBefore bNow rNow m =
+    if length tilesPlaced < 1
+        then Left "You must place at least one tile from your rack"
+        else 
+    where
+        tilesPlaced = bNow `without` bBefore 
+-}
+        -- TODO: Retrieve applicable bonuses
+-- DONE: Find perpendicular words - findXWords
+-- TODO: Check word connects with at least one existing word on board. Once
+--   new tiles added to board . . .
+--   - If first move of game, then OK
+--   - If # letters used from rack < # letters in word then OK
+--   - Otherwise there must be at least one adjoining perpendicular word
+-- TODO: Check played word and perpendicular words are in dictionary
+-- DONE: Calculate score
+-- TODO: refill rack
+
 
 -- Get a move - ANY move - and add it to the board
 -- Q: How to avoid endless indentation in control flow?
@@ -500,15 +525,18 @@ testGetMove :: Board -> Rack -> IO ()
 testGetMove b r = do
     m <- getMove
     case m of 
-        Prelude.Left s -> retryMove s
+        Prelude.Left e -> retryMove e
         Prelude.Right m -> 
-            case checkMove m of
-                Prelude.Left s -> retryMove s
-                Prelude.Right _ ->
-                    case addTiles b r m of
-                        Prelude.Left s -> retryMove s
-                        Prelude.Right (b',r') -> do printBoard b' bonuses
-                                                    testGetMove b' r'
+            case addTiles b r m of
+                Prelude.Left e -> retryMove e
+                Prelude.Right (b',r') -> do printBoard b' bonuses
+                                            testGetMove b' r'
+{-                                            
+                    case validateMove b b' r r' m of
+                        Prelude.Left e -> retryMove e
+                        Prelude.Right s -> do printBoard b' bonuses
+                                              testGetMove b' r'
+-}                                              
     where
         retryMove s = do putStrLn s
                          testGetMove b r                                                    
@@ -518,16 +546,15 @@ testFindXWords = do
     let 
         Prelude.Right (b1,r1) = addTiles [] fullBag (Move (Pos 'D' 5) Vertical "STRING")
         Prelude.Right (b2,r2) = addTiles b1 fullBag (Move (Pos 'B' 7) Horizontal "BOREDOM")
-        Prelude.Right (b3,r3) = addTiles b2 fullBag (Move (Pos 'D' 10) Horizontal "GUAGE")
-        Prelude.Right (b4,r4) = addTiles b3 fullBag (Move (Pos 'A' 5) Horizontal "BITS")
-        Prelude.Right (b5,r5) = addTiles b4 fullBag (Move (Pos 'B' 5) Vertical "IMBIBE")
-        word = findWord Vertical b5 (Pos 'B' 5)                                                 
-        newTiles = b5 `without` b4
-        newBonuses = tryFindManyPair [p | (p,_) <- newTiles] bonuses
-        score = wordScore word newBonuses
-    printBoard b5 bonuses                         
-    print word
-    print newTiles
-    print newBonuses
-    print score
-    --print score
+        Prelude.Right (b3,r3) = addTiles b2 fullBag (Move (Pos 'D' 11) Horizontal "SPRINKLE")
+        newTiles = b3 `without` b2
+        xwords = findNewXWords Horizontal b3 newTiles
+--        word = findWord Vertical b5 (Pos 'B' 5)                                                 
+--        newBonuses = tryFindManyPair [p | (p,_) <- newTiles] bonuses
+--        score = wordScore word newBonuses
+    printBoard b3 bonuses   
+    print xwords                      
+--    print word
+--    print newTiles
+--    print newBonuses
+--    print score
