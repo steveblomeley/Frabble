@@ -442,6 +442,23 @@ getMove = do
     move <- getLine
     return (parseMove (words move))
 
+-- Score a word
+wordBonus :: Position -> LiveBonuses -> Int
+wordBonus p bs = case b of
+                     Nothing -> 1
+                     Just (Letter _) -> 1
+                     Just (Word n) -> n
+                 where b = tryFind p bs
+              
+wordBonuses :: LiveWord -> LiveBonuses -> Int
+wordBonuses [] _ = 1
+wordBonuses (x:xs) bs = (wordBonus p bs) * (wordBonuses xs bs)
+                        where (p,_) = x 
+{-
+wordScore :: LiveWord -> LiveBonuses -> Int
+wordScore (x:xs) bs = 
+-}
+
 -- Get a move - ANY move - and add it to the board
 -- Q: How to avoid endless indentation in control flow?
 --    - Could encapsulate components of game state in a type
