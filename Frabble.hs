@@ -415,21 +415,21 @@ parseAlignment x
     | x == "Down"   = Just Vertical
     | otherwise     = Nothing
 
-parse2MoveComponents :: Position -> [String] -> Either String Move
-parse2MoveComponents p (x:xs) = case alignment of
-                                    Nothing -> Prelude.Left "The direction of your move should be either Across or Down"
-                                    Just a  -> Prelude.Right (Move p a (head xs))
-                                where
-                                    alignment = parseAlignment x    
+parse2MoveComponents :: Position -> String -> String -> Either String Move
+parse2MoveComponents pos a word = case alignmentResult of
+                                      Nothing         -> Prelude.Left "The direction of your move should be either Across or Down"
+                                      Just alignment  -> Prelude.Right (Move pos alignment word)
+                                  where
+                                      alignmentResult = parseAlignment a    
 
 parsePositionRow :: Char -> String -> Either String Position
-parsePositionRow col x = case r of
+parsePositionRow col x = case rowResult of
                              Nothing  -> Prelude.Left "The start position of a move should be a column & row, row between 1 and 15"
                              Just row -> if row < 0 || row > 15
-                                            then Prelude.Left "The start position of a move should be a column & row, row between 1 and 15"
-                                            else Prelude.Right (Pos col row)
+                                             then Prelude.Left "The start position of a move should be a column & row, row between 1 and 15"
+                                             else Prelude.Right (Pos col row)
                          where
-                             r = readMaybe x :: Maybe Int
+                             rowResult = readMaybe x :: Maybe Int
 
 parsePositionComponents :: Char -> String -> Either String Position
 parsePositionComponents c r = if notElem c cols
@@ -441,18 +441,21 @@ parsePosition p = if length p < 2 || length p > 3
                      then Prelude.Left "The start position of a move should be a column & row, e.g. A12, or C8"
                      else parsePositionComponents (head p) (tail p)
 
-parse3MoveComponents :: [String] -> Either String Move
-parse3MoveComponents (w:ws) = case pos of
-                                 Prelude.Left s  -> Prelude.Left s
-                                 Prelude.Right p -> parse2MoveComponents p ws
-                              where 
-                                  pos = parsePosition w 
+parse3MoveComponents :: String -> String -> String -> Either String Move
+parse3MoveComponents p a word = case posResult of
+                                    Prelude.Left  e   -> Prelude.Left e
+                                    Prelude.Right pos -> parse2MoveComponents pos a word
+                                where 
+                                    posResult = parsePosition p
 
 parseMove :: [String] -> Either String Move
 parseMove ws = if length ws == 3 
-                   then parse3MoveComponents ws
+                   then parse3MoveComponents (ws!!0) (ws!!1) (ws!!2)
                    else Prelude.Left "Move should have 3 parts - a position (like A1 or K10), direction (Down or Across), and a word"
 
+-- TODO: Strip this down to just the IO actions (prompt & get move)
+-- Move the parse and check into an "Either monad" context, along with
+-- all the other pure functions that validate & perform the move
 getMove :: IO (Either String Move)
 getMove = do
     putStrLn "Enter next move (e.g. A1 Across WORD) : "
