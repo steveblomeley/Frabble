@@ -48,3 +48,10 @@ parseMove :: [String] -> Either String Move
 parseMove ws = if length ws == 3 
                    then parse3MoveComponents (ws!!0) (ws!!1) (ws!!2)
                    else Prelude.Left "Move should have 3 parts - a position (like A1 or K10), direction (Down or Across), and a word"
+
+parseMove' :: String -> Either String Move
+parseMove' m = if length ws == 3 
+                    then parse3MoveComponents (ws!!0) (ws!!1) (ws!!2)
+                    else Prelude.Left "Move should have 3 parts - a position (like A1 or K10), direction (Down or Across), and a word"
+               where
+                   ws = words m

@@ -69,6 +69,10 @@ getMove = do
     move <- getLine
     return (checkMove $ parseMove $ words move)
 
+-- Better version - isolate the IO from everything else    
+getMove' :: IO String
+getMove'= putStr "Enter next move (e.g. A1 Across WORD)\n> " >> getLine >>= return
+
 {-
 validateMove :: Board -> Board -> Rack -> Move -> Either String (Int,Rack)
 validateMove bBefore bNow rNow m =
@@ -78,31 +82,12 @@ validateMove bBefore bNow rNow m =
     where
         tilesPlaced = bNow `without` bBefore 
 -}
-        -- TODO: Retrieve applicable bonuses
--- DONE: Find perpendicular words - findXWords
--- TODO: Check word connects with at least one existing word on board. Once
---   new tiles added to board . . .
---   - If first move of game, then OK
---   - If # letters used from rack < # letters in word then OK
---   - Otherwise there must be at least one adjoining perpendicular word
--- TODO: Check played word and perpendicular words are in dictionary
--- DONE: Calculate score
--- TODO: refill rack
+ 
 
 
--- Get a move - ANY move - and add it to the board
--- Q: How to avoid endless indentation in control flow?
---    - Could encapsulate components of game state in a type
---      Each function could then accept & return "Either String GameState"
---      Pattern match each function so that:
---      - Left s = Left s                        (i.e. return immediately)
---      - Right gs = do stuff with game state
---      But . . . would need to incorporate move into game state. Not simple,
---      may need to pass move history between turns, instead of board state.
---      Then play previous moves into blank board anytime we need the current
---      state of the board?
---      
 
+-- Test getting a move and adding it to the board
+-- (This could evolve into the main game loop)
 testGetMove :: Board -> Rack -> IO ()
 testGetMove b r = do
     m <- getMove
@@ -122,7 +107,23 @@ testGetMove b r = do
     where
         retryMove s = do putStrLn s
                          testGetMove b r                                                    
- 
+
+tryMakeMove :: Board -> Rack -> String -> Either String (Board,Rack)
+tryMakeMove b r m = do
+    move <- parseMove' m
+    return (b,r)
+
+testGetMove' :: Board -> Rack -> IO ()
+testGetMove' b r = do
+        m <- getMove'
+        case tryMakeMove b r m of
+            Prelude.Left  e     -> retryMove e
+            Prelude.Right (b,r) -> nextMove b r    
+        where
+            retryMove e = do putStrLn e
+                             testGetMove' b r 
+            nextMove b r = testGetMove' b r -- TODO: first need to refill rack, score(?), switch player.
+        
 testFindXWords :: IO () 
 testFindXWords = do
     let 
