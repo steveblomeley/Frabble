@@ -21,18 +21,17 @@ testFillRack = do
 
 
 -- A turn:
--- DONE: Parse player's move
--- DONE: Basic validation - checkMove
--- DONE: Add tiles to board - addTiles
--- TODO: Check at least one tile from rack has been used
--- DONE: Check that both ends of word are adjacent to empty square or edge of board
+--       Parse player's move
+--       Basic validation - checkMove
+--       Add tiles to board - addTiles
+--       Check at least one tile from rack has been used
+--       Check that both ends of word are adjacent to empty square or edge of board
+--       Check word connects with at least one existing word on board:
+--       - If first move of game, then OK
+--       - If # letters used from rack < # letters in word then OK
+--       - Otherwise there must be at least one adjoining perpendicular word
 -- TODO: Retrieve applicable bonuses
 -- TODO: Find perpendicular words - findXWords
--- TODO: Check word connects with at least one existing word on board. Once
---   new tiles added to board . . .
---   - If first move of game, then OK
---   - If # letters used from rack < # letters in word then OK
---   - Otherwise there must be at least one adjoining perpendicular word
 -- TODO: Check played word and perpendicular words are in dictionary
 -- TODO: Calculate score - wordScore
 -- TODO: refill rack - fillRack
@@ -57,8 +56,21 @@ getTilesPlaced bNew bOld =
     where
         tilesPlaced = bNew `without` bOld
 
-validateMove :: Board -> Board -> Either String [LiveTile]
-validateMove bNew bOld = getTilesPlaced bNew bOld
+validateWordPlacement :: Board -> Board -> Rack -> Rack -> Move -> Either String Bool
+validateWordPlacement bNew bOld rNew rOld (Move p a w) = 
+    if firstWordOnBoard || existingTilesUsed || perpendicularWords
+        then Prelude.Right True
+        else Prelude.Left  "Play a word that joins up with existing tiles on the board"
+    where
+        firstWordOnBoard   = null bOld
+        existingTilesUsed  = length w > length (rOld `without` rNew)
+        perpendicularWords = not (null (findXWords a bNew p))
+
+validateMove :: Board -> Board -> Rack -> Rack -> Move -> Either String [LiveTile]
+validateMove bNew bOld rNew rOld move = do
+    tiles <- getTilesPlaced bNew bOld
+    validateWordPlacement bNew bOld rNew rOld move
+    return tiles
 
 -- This does all the validation etc to parse a move, validate it, and apply to the board
 tryMakeMove :: Board -> Rack -> String -> Either String (Board,Rack)
@@ -67,7 +79,7 @@ tryMakeMove b r m = do
     checkMove move
     (b',r') <- addTiles b r move
     checkWordBoundaries b' move
-    validateMove b' b
+    validateMove b' b r' r move
     return (b',r') 
 
 -- Test getting a move and adding it to the board - effectively the main game loop
