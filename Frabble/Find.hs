@@ -33,15 +33,14 @@ findWord :: Alignment -> Board -> Position -> LiveWord
 findWord Horizontal = findLiveTilesRight
 findWord Vertical   = findLiveTilesDown
 
-findXWords :: Alignment -> Board -> Position -> [LiveWord]
-findXWords a b p
-    | offBoard p  = []
-    | isEmpty b p = []
-    | otherwise   = if length word > 1
-                       then word : findXWords a b (nextPos a p)
-                       else findXWords a b (nextPos a p)
-                    where
-                        word = findXWord a b p
+findXWords :: Alignment -> Board -> [LiveTile] -> [LiveWord]
+findXWords a b []           = []
+findXWords a b ((pos,_):ts) =
+    if length word > 1
+        then word : (findXWords a b ts)
+        else findXWords a b ts
+    where
+        word = findXWord a b pos
 
 findNewXWords :: Alignment -> Board -> [LiveTile] -> [LiveWord]
 findNewXWords a b ts = filter (\x -> length x > 1) [findXWord a b p | (p,_) <- ts]

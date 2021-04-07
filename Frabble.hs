@@ -54,7 +54,7 @@ getTilesPlaced bNew bOld =
         then Prelude.Left  "You must place at least one tile from your rack"
         else Prelude.Right tilesPlaced
     where
-        tilesPlaced = bNew `without` bOld
+        tilesPlaced = bNew `without` bOld        
 
 validateWordPlacement :: Board -> Board -> Rack -> Rack -> Move -> Either String Bool
 validateWordPlacement bNew bOld rNew rOld (Move p a w) = 
@@ -64,7 +64,7 @@ validateWordPlacement bNew bOld rNew rOld (Move p a w) =
     where
         firstWordOnBoard   = null bOld
         existingTilesUsed  = length w > length (rOld `without` rNew)
-        perpendicularWords = not (null (findXWords a bNew p))
+        perpendicularWords = not (null (findXWords a bNew (bNew `without` bOld)))
 
 validateMove :: Board -> Board -> Rack -> Rack -> Move -> Either String [LiveTile]
 validateMove bNew bOld rNew rOld move = do
