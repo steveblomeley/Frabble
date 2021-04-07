@@ -18,9 +18,8 @@ runsOffBoard (Move (Pos _ row) Vertical word) = lastRowOfWord > boardSize
                                                 where
                                                     lastRowOfWord = row + length word - 1
 
-checkMove :: Either String Move -> Either String Move
-checkMove (Prelude.Left e)              = (Prelude.Left e)
-checkMove (Prelude.Right (Move (Pos c r) a w)) 
+checkMove :: Move -> Either String Move
+checkMove (Move (Pos c r) a w)
     | not (elem r rows)                 = Prelude.Left ("Row should be in the range 1 to " ++ (show boardSize))
     | not (elem c cols)                 = Prelude.Left ("Column should be in the range 'A' to " ++ (show $ last cols))
     | length w < 1                      = Prelude.Left ("Word must be at least 1 letter long")
@@ -28,12 +27,7 @@ checkMove (Prelude.Right (Move (Pos c r) a w))
     | runsOffBoard (Move (Pos c r) a w) = Prelude.Left ("That word runs off the edge of the board")
     | otherwise                         = Prelude.Right (Move (Pos c r) a w)
 
-liveBonus :: Position -> LiveBonuses -> LiveBonuses
-liveBonus p lbs = case tryFindPair p bonuses of
-                        Nothing -> lbs
-                        Just lb -> (lb:lbs)
-
--- Add tiles to board to complete move; return modified board & rack, and applicable bonuses
+    -- Add tiles to board to complete move; return modified board & rack, and applicable bonuses
 addNewTile :: Board -> Rack -> Move -> Either String (Board,Rack)
 addNewTile b r (Move p a (t:ts)) = 
     if notElem t r then 
@@ -62,9 +56,11 @@ addTiles b r (Move p a (t:ts)) =
         Just t' -> useExistingTile b r (Move p a (t:ts)) t'
 
 -- Check a move starts and ends at either the edge of the board, or a blank square
-checkWordBoundaries :: Board -> Move -> Bool
-checkWordBoundaries b (Move p a w) = (offBoard pBeforeStart || isEmpty b pBeforeStart) &&
-                                     (offBoard pAfterEnd    || isEmpty b pAfterEnd)
+checkWordBoundaries :: Board -> Move -> Either String Bool
+checkWordBoundaries b (Move p a w) = if (offBoard pBeforeStart || isEmpty b pBeforeStart) &&
+                                        (offBoard pAfterEnd    || isEmpty b pAfterEnd)
+                                         then Prelude.Right True
+                                         else Prelude.Left  "That word partly overlaps an existing word - Please enter the FULL new word"
                                      where
                                          pBeforeStart  = prevPos a p
                                          pAfterEnd     = nextPos a lastPosInWord

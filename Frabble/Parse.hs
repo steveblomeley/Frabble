@@ -20,10 +20,8 @@ parse2MoveComponents pos a word = case alignmentResult of
 
 parsePositionRow :: Char -> String -> Either String Position
 parsePositionRow col x = case rowResult of
-                             Nothing  -> Prelude.Left "The start position of a move should be a column & row, row between 1 and 15"
-                             Just row -> if row < 0 || row > 15
-                                             then Prelude.Left "The start position of a move should be a column & row, row between 1 and 15"
-                                             else Prelude.Right (Pos col row)
+                             Nothing  -> Prelude.Left "The start position of a move should be a column (A-O) & row (1-15)"
+                             Just row -> Prelude.Right (Pos col row)
                          where
                              rowResult = readMaybe x :: Maybe Int
 
@@ -44,13 +42,8 @@ parse3MoveComponents p a word = case posResult of
                                 where 
                                     posResult = parsePosition p
 
-parseMove :: [String] -> Either String Move
-parseMove ws = if length ws == 3 
-                   then parse3MoveComponents (ws!!0) (ws!!1) (ws!!2)
-                   else Prelude.Left "Move should have 3 parts - a position (like A1 or K10), direction (Down or Across), and a word"
-
-parseMove' :: String -> Either String Move
-parseMove' m = if length ws == 3 
+parseMove :: String -> Either String Move
+parseMove m = if length ws == 3 
                     then parse3MoveComponents (ws!!0) (ws!!1) (ws!!2)
                     else Prelude.Left "Move should have 3 parts - a position (like A1 or K10), direction (Down or Across), and a word"
                where
