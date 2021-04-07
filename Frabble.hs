@@ -49,15 +49,16 @@ testFillRack = do
 getMove :: IO String
 getMove = putStr "Enter next move (e.g. A1 Across WORD)\n> " >> getLine >>= return
 
-{-
-validateMove :: Board -> Board -> Rack -> Move -> Either String (Int,Rack)
-validateMove bBefore bNow rNow m =
+getTilesPlaced :: Board -> Board -> Either String [LiveTile]
+getTilesPlaced bNew bOld = 
     if length tilesPlaced < 1
-        then Left "You must place at least one tile from your rack"
-        else 
+        then Prelude.Left  "You must place at least one tile from your rack"
+        else Prelude.Right tilesPlaced
     where
-        tilesPlaced = bNow `without` bBefore 
--}
+        tilesPlaced = bNew `without` bOld
+
+validateMove :: Board -> Board -> Either String [LiveTile]
+validateMove bNew bOld = getTilesPlaced bNew bOld
 
 -- This does all the validation etc to parse a move, validate it, and apply to the board
 tryMakeMove :: Board -> Rack -> String -> Either String (Board,Rack)
@@ -66,6 +67,7 @@ tryMakeMove b r m = do
     checkMove move
     (b',r') <- addTiles b r move
     checkWordBoundaries b' move
+    validateMove b' b
     return (b',r') 
 
 -- Test getting a move and adding it to the board - effectively the main game loop
