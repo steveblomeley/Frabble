@@ -1,4 +1,4 @@
-module Frabble.Display where
+module Frabble.Display (printBoard, interleave) where
 
 import Frabble.Types
 import Frabble.Useful

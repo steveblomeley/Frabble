@@ -1,4 +1,4 @@
-module Frabble.Navigation where
+module Frabble.Navigation (offBoard, nextPos, prevPos, isEmpty, shift, adjacent) where
 
 import Data.Char
 import Frabble.Types

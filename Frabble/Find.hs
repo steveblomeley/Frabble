@@ -1,4 +1,4 @@
-module Frabble.Find where
+module Frabble.Find (findXWords, findWord) where
 
 import Frabble.Types
 import Frabble.Useful
@@ -34,13 +34,4 @@ findWord Horizontal = findLiveTilesRight
 findWord Vertical   = findLiveTilesDown
 
 findXWords :: Alignment -> Board -> [LiveTile] -> [LiveWord]
-findXWords a b []           = []
-findXWords a b ((pos,_):ts) =
-    if length word > 1
-        then word : (findXWords a b ts)
-        else findXWords a b ts
-    where
-        word = findXWord a b pos
-
-findNewXWords :: Alignment -> Board -> [LiveTile] -> [LiveWord]
-findNewXWords a b ts = filter (\x -> length x > 1) [findXWord a b p | (p,_) <- ts]
+findXWords a b ts = filter (\x -> length x > 1) [findXWord a b p | (p,_) <- ts]

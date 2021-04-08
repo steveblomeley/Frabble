@@ -38,7 +38,7 @@ fillRack rack bag = do
     ls <- randomPick bag (rackSize - (length rack))
     return (rack ++ ls, bag `without` ls)
 
-getTilesPlaced :: Board -> Board -> Either String [LiveTile]
+ getTilesPlaced :: Board -> Board -> Either String [LiveTile]
 getTilesPlaced bNew bOld = 
     if length tilesPlaced < 1
         then Prelude.Left  "You must place at least one tile from your rack"

@@ -1,4 +1,4 @@
-module Frabble.Parse where 
+module Frabble.Parse (parseMove) where 
     
 import Frabble.Types
 import Text.Read

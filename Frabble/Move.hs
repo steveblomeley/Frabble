@@ -1,4 +1,4 @@
-module Frabble.Move where 
+module Frabble.Move (addTiles, checkMove, checkWordBoundaries) where 
     
 import Data.Char
 import Frabble.Types
