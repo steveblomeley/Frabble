@@ -63,6 +63,5 @@ checkWordBoundaries b (Move p a w) = if (offBoard pBeforeStart || isEmpty b pBef
                                          else Prelude.Left  "That word partly overlaps an existing word - Please enter the FULL new word"
                                      where
                                          pBeforeStart  = prevPos a p
-                                         pAfterEnd     = nextPos a lastPosInWord
-                                         lastPosInWord = shift direction (length w) p
+                                         pAfterEnd     = shift direction (length w) p
                                          direction     = if a == Horizontal then Frabble.Types.Right else Down
