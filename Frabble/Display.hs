@@ -7,15 +7,15 @@ import Frabble.Useful
    Display the board, like this:
 
      A   B   C   D  etc...
-   +---+---+---+---+
+    --- --- --- --- 
 1  |   | Y |   |   |
-   +---+---+---+---+
+    --- --- --- --- 
 2  | H | E | L | P |
-   +---+---+---+---+
+    --- --- --- --- 
 3  |   | L |   |   |
-   +---+---+---+---+
+    --- --- --- --- 
 4  |   | P |   |   |
-   +---+---+---+---+
+    --- --- --- ---
 
 -}
 
@@ -28,7 +28,7 @@ printHeader :: IO ()
 printHeader = putStrLn ("  "   ++ concat(interleave (repeat "   ") (map (\x -> [x]) cols)))
 
 printDivider :: IO ()
-printDivider = putStrLn ("   +" ++ concat(interleave (replicate boardSize "---") (repeat "+")))
+printDivider = putStrLn ("    " ++ concat(interleave (replicate boardSize "---") (repeat " ")))
 
 bonusContent :: Position -> BonusBoard -> String
 bonusContent pos board = case tryFind pos board of

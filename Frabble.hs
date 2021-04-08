@@ -19,7 +19,6 @@ testFillRack = do
     print r
     print b
 
-
 -- A turn:
 --       Parse player's move
 --       Basic validation - checkMove
@@ -57,16 +56,29 @@ getTilesPlaced bNew bOld =
     where
         tilesPlaced = bNew `without` bOld        
 
-validateWordPlacement :: Board -> Board -> Rack -> Rack -> Move -> Either String Bool
-validateWordPlacement bNew bOld rNew rOld (Move p a w) = 
-    if firstWordOnBoard || existingTilesUsed || perpendicularWords
+checkCentreSquareUsed :: Board -> Either String Bool
+checkCentreSquareUsed b =
+    case tryFind centreSquare b of
+        Just _  -> Prelude.Right True
+        Nothing -> Prelude.Left "First move of the game must use the centre square"
+
+checkJoinsExistingTiles :: Board -> Board -> Rack -> Rack -> Move -> Either String Bool
+checkJoinsExistingTiles bNew bOld rNew rOld (Move p a w) = 
+    if existingTilesUsed || perpendicularWords
         then Prelude.Right True
         else Prelude.Left  "Play a word that joins up with existing tiles on the board"
     where
-        firstWordOnBoard   = null bOld
         existingTilesUsed  = length w > length (rOld `without` rNew)
         perpendicularWords = not (null (findXWords a bNew (bNew `without` bOld)))
-
+   
+validateWordPlacement :: Board -> Board -> Rack -> Rack -> Move -> Either String Bool
+validateWordPlacement bNew bOld rNew rOld (Move p a w) = 
+    if firstWordOnBoard
+        then checkCentreSquareUsed bNew
+        else checkJoinsExistingTiles bNew bOld rNew rOld (Move p a w)
+    where
+        firstWordOnBoard = null bOld
+             
 validateMove :: Board -> Board -> Rack -> Rack -> Move -> Either String [LiveTile]
 validateMove bNew bOld rNew rOld move = do
     tiles <- getTilesPlaced bNew bOld
