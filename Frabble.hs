@@ -7,18 +7,6 @@ import Frabble.Navigation
 import Frabble.Find
 import Frabble.Move
 
-fillRack :: Rack -> Bag -> IO (Rack,Bag)
-fillRack rack bag = do
-    ls <- randomPick bag (rackSize - (length rack))
-    return (rack ++ ls, bag `without` ls)
-
-testFillRack :: IO ()
-testFillRack = do
-    print fullBag
-    (r,b) <- fillRack [] fullBag
-    print r
-    print b
-
 -- A turn:
 --       Parse player's move
 --       Basic validation - checkMove
@@ -44,6 +32,11 @@ testFillRack = do
 -- --> Player A makes move --> Valid move? ---> Yes --> Player B makes move --> Valid move? --> etc ..
 --                                         \
 --                                          +--> No --> Player A makes move --> Valid move? --> etc ..
+
+fillRack :: Rack -> Bag -> IO (Rack,Bag)
+fillRack rack bag = do
+    ls <- randomPick bag (rackSize - (length rack))
+    return (rack ++ ls, bag `without` ls)
 
 getTilesPlaced :: Board -> Board -> Either String [LiveTile]
 getTilesPlaced bNew bOld = 
@@ -109,7 +102,8 @@ getMove :: Rack -> IO String
 getMove r = 
     showRack r >> putStr "Enter next move (e.g. A1 Across WORD)\n> " >> getLine >>= return
         
--- Test getting a move and adding it to the board - effectively the main game loop
+-- The main game loop - get, parse & validate a move, apply to the board, score it, refill
+-- the players rack . . . Repeat
 play :: Board -> Rack -> Bag -> IO ()
 play b r ts = do
         m <- getMove r
