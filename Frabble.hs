@@ -29,24 +29,21 @@ testFillRack = do
 --       - If first move of game, then OK
 --       - If # letters used from rack < # letters in word then OK
 --       - Otherwise there must be at least one adjoining perpendicular word
--- TODO: Check that if first move then covers centre tile on board
+--       Check that if first move then centre tile on board has been covered
 --       Retrieve applicable bonuses
 --       Find perpendicular words - findXWords
 -- TODO: Check played word and perpendicular words are in dictionary
 --       Calculate score - wordScore
--- TODO: refill rack - fillRack
+--       Refill rack - fillRack
 -- TODO: Calculate player's total score
 -- TODO: Calculate next player
--- TODO: Next turn
+--       Next turn
 
 -- The game flow is:
 -- 
 -- --> Player A makes move --> Valid move? ---> Yes --> Player B makes move --> Valid move? --> etc ..
 --                                         \
 --                                          +--> No --> Player A makes move --> Valid move? --> etc ..
-
-getMove :: IO String
-getMove = putStr "Enter next move (e.g. A1 Across WORD)\n> " >> getLine >>= return
 
 getTilesPlaced :: Board -> Board -> Either String [LiveTile]
 getTilesPlaced bNew bOld = 
@@ -112,16 +109,29 @@ tryMakeMove b r m = do
     let score = calculateScore b' newWords newTiles
     return (b',r',score) 
 
+showRack :: Rack -> IO ()
+showRack r = putStrLn ("Your tiles are: " ++ (interleave r (repeat ' ')))
+
+getMove :: Rack -> IO String
+getMove r = 
+    showRack r >> putStr "Enter next move (e.g. A1 Across WORD)\n> " >> getLine >>= return
+        
 -- Test getting a move and adding it to the board - effectively the main game loop
-play :: Board -> Rack -> IO ()
-play b r = do
-        m <- getMove
+play :: Board -> Rack -> Bag -> IO ()
+play b r ts = do
+        m <- getMove r
         case tryMakeMove b r m of
             Prelude.Left  e         -> retryMove e
-            Prelude.Right (b',r',s) -> nextMove b' r' s
+            Prelude.Right (b',r',s) -> nextMove b' r' s ts
         where
-            retryMove e    = do putStrLn e
-                                play b r 
-            nextMove b r s = do printBoard b bonuses
-                                putStrLn ("Move scored " ++ (show s))
-                                play b r
+            retryMove e       = do putStrLn e
+                                   play b r ts
+            nextMove b r s ts = do printBoard b bonuses
+                                   putStrLn ("Move scored " ++ (show s))
+                                   (r',ts') <- fillRack r ts
+                                   play b r' ts' 
+
+startGame :: IO ()
+startGame = do
+    (rack,bag) <- fillRack [] fullBag
+    play [] rack bag
