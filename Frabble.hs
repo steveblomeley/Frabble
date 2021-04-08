@@ -86,8 +86,7 @@ calculateScore :: Board -> [LiveWord] -> [LiveTile] -> Int
 calculateScore b ws ts = 
     sum (map (\w -> wordScore w bs) ws)
     where
-        bs = tryFindManyPair ps bonuses
-        ps = map (\(p,_) -> p) ts
+        bs = tryFindManyPair [p | (p,_) <- ts] bonuses
         
 -- This does all the validation etc to parse a move, validate it, and apply to the board
 tryMakeMove :: Board -> Rack -> String -> Either String (Board,Rack,Int)
@@ -114,21 +113,3 @@ play b r = do
             nextMove b r s = do printBoard b bonuses
                                 putStrLn ("Move scored " ++ (show s))
                                 play b r
-        
-testFindXWords :: IO () 
-testFindXWords = do
-    let 
-        Prelude.Right (b1,r1) = addTiles [] fullBag (Move (Pos 'D' 5) Vertical "STRING")
-        Prelude.Right (b2,r2) = addTiles b1 fullBag (Move (Pos 'B' 7) Horizontal "BOREDOM")
-        Prelude.Right (b3,r3) = addTiles b2 fullBag (Move (Pos 'D' 11) Horizontal "SPRINKLE")
-        newTiles = b3 `without` b2
-        xwords = findNewXWords Horizontal b3 newTiles
---        word = findWord Vertical b5 (Pos 'B' 5)                                                 
---        newBonuses = tryFindManyPair [p | (p,_) <- newTiles] bonuses
---        score = wordScore word newBonuses
-    printBoard b3 bonuses   
-    print xwords                      
---    print word
---    print newTiles
---    print newBonuses
---    print score
