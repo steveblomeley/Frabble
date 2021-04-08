@@ -1,4 +1,4 @@
-module Frabble.Scoring where
+module Frabble.Scoring (calculateScore) where
 
 import Frabble.Types
 import Frabble.Useful
@@ -28,5 +28,12 @@ letterScores (x:xs) bonuses = (score * bonus) + (letterScores xs bonuses)
                                     score = Frabble.Useful.find letter scores 
                                     bonus = letterBonus pos bonuses        
 
-wordScore :: LiveWord -> LiveBonuses -> Int
-wordScore word bonuses = (letterScores word bonuses) * (wordBonuses word bonuses)
+wordScore :: LiveBonuses -> LiveWord -> Int
+wordScore bonuses word = (letterScores word bonuses) * (wordBonuses word bonuses)
+
+calculateScore :: Board -> [LiveWord] -> [LiveTile] -> Rack -> Rack -> Int
+calculateScore b ws ts rBefore rAfter = 
+    sum (map (wordScore bs) ws) + sevenLetterBonus
+    where
+        bs = tryFindManyPair [p | (p,_) <- ts] bonuses
+        sevenLetterBonus = if (length rBefore == 7) && (length rAfter == 0) then 50 else 0

@@ -90,13 +90,6 @@ validateNewWords b (Move p a w) newTiles =
         newWord = findWord a b p
         newXWords = findXWords a b newTiles
 
--- TODO: 50 point bonus for emptying rack
-calculateScore :: Board -> [LiveWord] -> [LiveTile] -> Int
-calculateScore b ws ts = 
-    sum (map (\w -> wordScore w bs) ws)
-    where
-        bs = tryFindManyPair [p | (p,_) <- ts] bonuses
-        
 -- This does all the validation etc to parse a move, validate it, and apply to the board
 tryMakeMove :: Board -> Rack -> String -> Either String (Board,Rack,Int)
 tryMakeMove b r m = do
@@ -106,7 +99,7 @@ tryMakeMove b r m = do
     checkWordBoundaries b' move
     newTiles <- validateMove b' b r' r move
     newWords <- validateNewWords b' move newTiles
-    let score = calculateScore b' newWords newTiles
+    let score = calculateScore b' newWords newTiles r r'
     return (b',r',score) 
 
 showRack :: Rack -> IO ()
