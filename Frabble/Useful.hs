@@ -29,7 +29,8 @@ randomPick1 xs = do
     return (xs !! i)    
 
 randomPick :: Eq a => [a] -> Int -> IO [a]
-randomPick _ 0  = return []
+randomPick _  0 = return []
+randomPick [] _ = return []
 randomPick xs n = do
     x   <- randomPick1 xs
     xs' <- randomPick (xs `without1` x) (n-1)
