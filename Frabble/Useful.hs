@@ -52,9 +52,6 @@ interleave [] (y:ys) = [y]
 interleave (x:xs) [] = [x]
 interleave (x:xs) ys = x : interleave ys xs
 
-spacedOut :: [String] -> String
-spacedOut = concat . (flip interleave) (repeat " ")
-
 wordToString :: LiveWord -> String
 wordToString lw = [x | (_,x) <- lw]
 

@@ -81,7 +81,7 @@ validateNewWords :: Dictionary -> Board -> Move -> [LiveTile] -> Either String [
 validateNewWords d b (Move p a w) newTiles =
     case checkDictionary d (wordsToStrings newWords) of
         []       -> Prelude.Right newWords
-        badWords -> Prelude.Left ("Not in dictionary: " ++ (spacedOut badWords))
+        badWords -> Prelude.Left ("Not in dictionary: " ++ (unwords badWords))
     where
         newWord   = findWord a b p
         newXWords = findXWords a b newTiles
@@ -109,8 +109,8 @@ getMove r =
 -- the players rack - repeat
 play :: Dictionary -> Board -> Rack -> Bag -> IO ()
 play d b r ts = do
-        input <- getMove r
-        case tryMakeMove d b r input of
+        result <- fmap (tryMakeMove d b r) (getMove r)
+        case result of
             Prelude.Left  e         -> retryMove e
             Prelude.Right (b',r',s) -> nextMove b' r' s
         where
