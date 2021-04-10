@@ -27,11 +27,11 @@ checkMove (Move (Pos c r) a w)
     | runsOffBoard (Move (Pos c r) a w) = Prelude.Left ("That word runs off the edge of the board")
     | otherwise                         = Prelude.Right (Move (Pos c r) a w)
 
-    -- Add tiles to board to complete move; return modified board & rack, and applicable bonuses
+-- Trio of functions to add tiles to board to complete a move, returning modified board & rack, & applicable bonuses
 addNewTile :: Board -> Rack -> Move -> Either String (Board,Rack)
 addNewTile b r (Move p a (t:ts)) = 
     if notElem t r then 
-        Prelude.Left "That word needs a tile that isn't on your rack" 
+        Prelude.Left "That word uses a tile that you don't have"
     else
         addTiles boardWithTileAdded rackWithTileRemoved remainderOfMove
         where 
@@ -57,11 +57,12 @@ addTiles b r (Move p a (t:ts)) =
 
 -- Check a move starts and ends at either the edge of the board, or a blank square
 checkWordBoundaries :: Board -> Move -> Either String Bool
-checkWordBoundaries b (Move p a w) = if (offBoard pBeforeStart || isEmpty b pBeforeStart) &&
-                                        (offBoard pAfterEnd    || isEmpty b pAfterEnd)
-                                         then Prelude.Right True
-                                         else Prelude.Left  "That word partly overlaps an existing word - Please enter the FULL new word"
-                                     where
-                                         pBeforeStart  = prevPos a p
-                                         pAfterEnd     = shift direction (length w) p
-                                         direction     = if a == Horizontal then Frabble.Types.Right else Down
+checkWordBoundaries b (Move p a w) = 
+    if (offBoard pBeforeStart || isEmpty b pBeforeStart) &&
+       (offBoard pAfterEnd    || isEmpty b pAfterEnd)
+        then Prelude.Right True
+        else Prelude.Left  "That word partly overlaps an existing word - Please enter the FULL new word"
+    where
+        pBeforeStart = prevPos a p
+        pAfterEnd    = shift direction (length w) p
+        direction    = if a == Horizontal then Frabble.Types.Right else Down

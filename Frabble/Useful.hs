@@ -2,6 +2,7 @@ module Frabble.Useful where
 
 import System.Random
 import Data.List
+import Frabble.Types
 
 tryFind :: Eq k => k -> [(k,v)] -> Maybe v
 tryFind k kvs = if null vs then Nothing else Just (head vs)
@@ -45,3 +46,17 @@ without1 (x:xs) y
 without :: Eq a => [a] -> [a] -> [a]
 without xs []     = xs
 without xs (y:ys) = (xs `without1` y) `without` ys 
+
+interleave :: [a] -> [a] -> [a]
+interleave [] (y:ys) = [y]
+interleave (x:xs) [] = [x]
+interleave (x:xs) ys = x : interleave ys xs
+
+spacedOut :: [String] -> String
+spacedOut = concat . (flip interleave) (repeat " ")
+
+wordToString :: LiveWord -> String
+wordToString lw = [x | (_,x) <- lw]
+
+wordsToStrings :: [LiveWord] -> [String]
+wordsToStrings = map wordToString

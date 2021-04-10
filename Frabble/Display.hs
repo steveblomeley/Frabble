@@ -19,11 +19,6 @@ import Frabble.Useful
 
 -}
 
-interleave :: [a] -> [a] -> [a]
-interleave [] (y:ys) = [y]
-interleave (x:xs) [] = [x]
-interleave (x:xs) ys = x : interleave ys xs
-
 printHeader :: IO ()
 printHeader = putStrLn ("  "   ++ concat(interleave (repeat "   ") (map (\x -> [x]) cols)))
 
