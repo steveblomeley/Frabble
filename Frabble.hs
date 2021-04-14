@@ -109,7 +109,7 @@ getMove r =
 -- the players rack - repeat
 play :: Dictionary -> Board -> Rack -> Bag -> IO ()
 play d b r ts = do
-        result <- fmap (tryMakeMove d b r) (getMove r)
+        result <- (tryMakeMove d b r) <$> (getMove r)
         case result of
             Prelude.Left  e         -> retryMove e
             Prelude.Right (b',r',s) -> nextMove b' r' s
