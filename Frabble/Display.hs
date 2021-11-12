@@ -20,7 +20,7 @@ import Frabble.Useful
 -}
 
 printHeader :: IO ()
-printHeader = putStrLn ("  "   ++ concat(interleave (repeat "   ") (map (\x -> [x]) cols)))
+printHeader = putStrLn ("  "   ++ concat(interleave (repeat "   ") (map (: []) cols)))
 
 printDivider :: IO ()
 printDivider = putStrLn ("    " ++ concat(interleave (replicate boardSize "---") (repeat " ")))
@@ -28,28 +28,28 @@ printDivider = putStrLn ("    " ++ concat(interleave (replicate boardSize "---")
 bonusContent :: Position -> BonusBoard -> String
 bonusContent pos board = case tryFind pos board of
                              Nothing -> "   "
-                             Just x  -> " " ++ (show x) ++ " "                          
+                             Just x  -> " " ++ show x ++ " "
 
 squareContent :: Position -> Board -> BonusBoard -> String
 squareContent pos b bb = case tryFind pos b of
                              Nothing -> bonusContent pos bb
-                             Just x  -> " " ++ [x] ++ " "                          
+                             Just x  -> " " ++ [x] ++ " "
 
 rowContents :: Board -> BonusBoard -> Int -> [String]
 rowContents b bb row = [squareContent (Pos col row) b bb | col <- cols]
 
 rowNumber :: Int -> String
-rowNumber row = n ++ (concat(replicate (3-l) " "))
+rowNumber row = n ++ concat(replicate (3-l) " ")
                 where n = show row
-                      l = length n 
+                      l = length n
 
 printRow :: Board -> BonusBoard -> Int -> IO ()
-printRow b bb row = putStrLn ((rowNumber row) ++ concat(interleave (repeat "|") (rowContents b bb row)))
+printRow b bb row = putStrLn (rowNumber row ++ concat(interleave (repeat "|") (rowContents b bb row)))
 
 printBody :: Board -> BonusBoard -> Int -> IO ()
 printBody b bb row
     | row > boardSize = do printDivider
-    | otherwise       = do printDivider 
+    | otherwise       = do printDivider
                            printRow b bb row
                            printBody b bb (row+1)
 

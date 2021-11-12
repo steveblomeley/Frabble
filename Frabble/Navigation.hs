@@ -7,8 +7,8 @@ import Frabble.Useful
 shift :: Direction -> Int -> Position -> Position
 shift Up                  n (Pos c r) = Pos c (r - n)
 shift Down                n (Pos c r) = Pos c (r + n)
-shift Frabble.Types.Right n (Pos c r) = Pos (chr((ord c) + n)) r
-shift Frabble.Types.Left  n (Pos c r) = Pos (chr((ord c) - n)) r
+shift Frabble.Types.Right n (Pos c r) = Pos (chr(ord c + n)) r
+shift Frabble.Types.Left  n (Pos c r) = Pos (chr(ord c - n)) r
 
 nextPos :: Alignment -> Position -> Position
 nextPos Horizontal = shift Frabble.Types.Right 1
@@ -22,7 +22,7 @@ adjacent :: Direction -> Position -> Position
 adjacent d = shift d 1
 
 isEmpty :: Board -> Position -> Bool
-isEmpty b p = tryFind p b == Nothing
+isEmpty b p = isNothing (tryFind p b)
 
 offBoard :: Position -> Bool
-offBoard (Pos col row) = col < head cols || col > last cols || row < head rows || row > last rows 
+offBoard (Pos col row) = col < head cols || col > last cols || row < head rows || row > last rows

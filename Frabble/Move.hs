@@ -1,5 +1,5 @@
-module Frabble.Move (addTiles, checkMove, checkWordBoundaries) where 
-    
+module Frabble.Move (addTiles, checkMove, checkWordBoundaries) where
+
 import Data.Char
 import Frabble.Types
 import Frabble.Useful
@@ -20,21 +20,21 @@ runsOffBoard (Move (Pos _ row) Vertical word) = lastRowOfWord > boardSize
 
 checkMove :: Move -> Either String Move
 checkMove (Move (Pos c r) a w)
-    | not (elem r rows)                 = Prelude.Left ("Row should be in the range 1 to " ++ (show boardSize))
-    | not (elem c cols)                 = Prelude.Left ("Column should be in the range 'A' to " ++ (show $ last cols))
-    | length w < 1                      = Prelude.Left ("Word must be at least 1 letter long")
-    | not (onlyAtoZ w)                  = Prelude.Left ("Word should contain only the letters 'A' to 'Z'")
-    | runsOffBoard (Move (Pos c r) a w) = Prelude.Left ("That word runs off the edge of the board")
+    | r `notElem` rows                  = Prelude.Left ("Row should be in the range 1 to " ++ show boardSize)
+    | c `notElem` cols                  = Prelude.Left ("Column should be in the range 'A' to " ++ show (last cols))
+    | null w                            = Prelude.Left "Word must be at least 1 letter long"
+    | not (onlyAtoZ w)                  = Prelude.Left "Word should contain only the letters 'A' to 'Z'"
+    | runsOffBoard (Move (Pos c r) a w) = Prelude.Left "That word runs off the edge of the board"
     | otherwise                         = Prelude.Right (Move (Pos c r) a w)
 
 -- Trio of functions to add tiles to board to complete a move, returning modified board & rack, & applicable bonuses
 addNewTile :: Board -> Rack -> Move -> Either String (Board,Rack)
-addNewTile b r (Move p a (t:ts)) = 
-    if notElem t r then 
+addNewTile b r (Move p a (t:ts)) =
+    if t `notElem` r then
         Prelude.Left "That word uses a tile that you don't have"
     else
         addTiles boardWithTileAdded rackWithTileRemoved remainderOfMove
-        where 
+        where
             boardWithTileAdded = (p,t):b
             rackWithTileRemoved = r `without1` t
             remainderOfMove = Move (nextPos a p) a ts
@@ -45,19 +45,19 @@ useExistingTile b r (Move p a (t:ts)) tExisting =
         Prelude.Left "One or more letters in that word do not match tiles already on the board"
     else
         addTiles b r remainderOfMove
-        where 
+        where
             remainderOfMove = Move (nextPos a p) a ts
 
 addTiles :: Board -> Rack -> Move -> Either String (Board,Rack)
 addTiles b r (Move _ _ []) = Prelude.Right (b,r)
-addTiles b r (Move p a (t:ts)) = 
+addTiles b r (Move p a (t:ts)) =
     case tryFind p b of
         Nothing -> addNewTile b r (Move p a (t:ts))
         Just t' -> useExistingTile b r (Move p a (t:ts)) t'
 
 -- Check a move starts and ends at either the edge of the board, or a blank square
 checkWordBoundaries :: Board -> Move -> Either String Bool
-checkWordBoundaries b (Move p a w) = 
+checkWordBoundaries b (Move p a w) =
     if (offBoard pBeforeStart || isEmpty b pBeforeStart) &&
        (offBoard pAfterEnd    || isEmpty b pAfterEnd)
         then Prelude.Right True

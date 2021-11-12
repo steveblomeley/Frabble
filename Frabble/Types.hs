@@ -63,6 +63,7 @@ ltrScores = [1,3,3,2,1,4,2,4,1,8,5,1,3,1,1,3,10,1,1,1,1,4,4,8,4,10]
 fullBag :: Bag
 fullBag = concat . zipWith replicate ltrCounts $ ['A'..'Z']
 
+scores :: [(Char, Int)]
 scores = zip ['A'..'Z'] ltrScores
 
 l2 :: Bonus

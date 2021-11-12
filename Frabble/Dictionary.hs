@@ -7,12 +7,12 @@ import Frabble.Useful
 type Dictionary = [String]
 
 getDictionary :: IO Dictionary
-getDictionary = do 
+getDictionary = do
     dict <- readFile "Frabble/dictionary.txt"
     return (words dict)
-    
+
 checkDictionary :: Dictionary -> [String] -> [String]
 checkDictionary _ [] = []
 checkDictionary dict (w:ws)
-    | elem (map toLower w) dict = checkDictionary dict ws
-    | otherwise                 = w : (checkDictionary dict ws)
+    | map toLower w `elem` dict = checkDictionary dict ws
+    | otherwise                 = w : checkDictionary dict ws
